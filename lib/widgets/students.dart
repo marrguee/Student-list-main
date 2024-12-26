@@ -1,34 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/students_provider.dart';
-import '../models/student.dart';
 import 'students_list.dart';
 import 'new_student.dart';
 
 class StudentsScreen extends ConsumerWidget {
   const StudentsScreen({super.key});
 
-  void _showNewStudentForm(BuildContext context, WidgetRef ref, {Student? existingStudent}) {
+  void _showNewStudentForm(BuildContext context, WidgetRef ref, {int? index}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (_) {
         return NewStudent(
-          onAddStudent: (student) {
-            ref.read(studentsProvider.notifier).addStudent(student);
-          },
-          onEditStudent: (oldStudent, newStudent) {
-            ref.read(studentsProvider.notifier).editStudent(oldStudent, newStudent);
-          },
-          existingStudent: existingStudent,
+          studentIndex: index
         );
       },
     );
   }
 
-  void _deleteStudent(BuildContext context, WidgetRef ref, Student student) {
+  void _deleteStudent(BuildContext context, WidgetRef ref, int studentIndex) {
     final notifier = ref.read(studentsProvider.notifier);
-    notifier.deleteStudent(student.id);
+    notifier.removeStudent(studentIndex);
 
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -38,16 +31,38 @@ class StudentsScreen extends ConsumerWidget {
         action: SnackBarAction(
           label: 'Undo',
           onPressed: () {
-            notifier.restoreStudent(student);
+            notifier.restoreStudent();
           },
         ),
       ),
-    );
+    ).closed.then((value) {
+      if (value != SnackBarClosedReason.action) {
+        ref
+            .read(studentsProvider.notifier)
+            .removeStudentOnServer();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final students = ref.watch(studentsProvider);
+    final notifier = ref.watch(studentsProvider.notifier);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (notifier.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              notifier.errorMessage!,
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        notifier.clearError();
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -59,15 +74,23 @@ class StudentsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: students.isEmpty
-          ? const Center(
-              child: Text("No students found. Start adding some!"),
-            )
-          : StudentsList(
-              students: students,
-              onRemoveStudent: (student) => _deleteStudent(context, ref, student),
-              onSelectStudent: (student) => _showNewStudentForm(context, ref, existingStudent: student),
-            ),
+      body: () {
+        if (notifier.isLoading) {
+          return const Center(
+            child: Text("No students found. Start adding some!"),
+          );
+        } else if (students == null || students.isEmpty) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        } else {
+          return StudentsList(
+            students: students,
+            onRemoveStudent: (index) => _deleteStudent(context, ref, index),
+            onSelectStudent: (index) => _showNewStudentForm(context, ref, index: index),
+          );
+        }
+      }(),
     );
   }
 }

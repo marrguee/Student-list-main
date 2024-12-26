@@ -1,24 +1,22 @@
 import 'package:flutter/material.dart';
 import '../models/student.dart';
 import '../models/department.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/students_provider.dart';
 
-class NewStudent extends StatefulWidget {
+class NewStudent extends ConsumerStatefulWidget {
   const NewStudent({
     super.key,
-    required this.onAddStudent,
-    required this.onEditStudent,
-    this.existingStudent,
+    this.studentIndex
   });
 
-  final void Function(Student student) onAddStudent;
-  final void Function(Student student, Student newStudent) onEditStudent;
-  final Student? existingStudent;
+  final int? studentIndex;
 
   @override
-  State<NewStudent> createState() => _NewStudentState();
+  ConsumerState<ConsumerStatefulWidget> createState() => _NewStudentState();
 }
 
-class _NewStudentState extends State<NewStudent> {
+class _NewStudentState extends ConsumerState<NewStudent> {
   Department? _selectedDepartment = departments[0];
   Genders? _selectedGender = Genders.male;
 
@@ -29,9 +27,8 @@ class _NewStudentState extends State<NewStudent> {
   @override
   void initState() {
     super.initState();
-
-    final student = widget.existingStudent;
-    if (student != null) {
+    if (widget.studentIndex != null) {
+      final student = ref.read(studentsProvider)![widget.studentIndex!];
       _firstNameController.text = student.firstName;
       _lastNameController.text = student.lastName;
       _gradeController.text = student.grade.toString();
@@ -48,33 +45,48 @@ class _NewStudentState extends State<NewStudent> {
     super.dispose();
   }
 
-  void _submitStudentData() {
-    final grade = int.tryParse(_gradeController.text);
+  void _submitStudentData() async {
+     final grade = int.tryParse(_gradeController.text);
+
     if (grade == null || _selectedDepartment == null || _selectedGender == null) {
-      return;
-    }
-
-    final newStudent = Student(
-      id: widget.existingStudent?.id ?? DateTime.now().toString(),
-      firstName: _firstNameController.text,
-      lastName: _lastNameController.text,
-      department: _selectedDepartment!,
-      grade: grade,
-      gender: _selectedGender!,
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Please enter valid data for all fields.'),
+        backgroundColor: Colors.red,
+      ),
     );
+    return;
+  }
 
-    if (widget.existingStudent != null) {
-      widget.onEditStudent(widget.existingStudent!, newStudent);
+    if (widget.studentIndex != null) {
+      await ref.read(studentsProvider.notifier).editStudent(
+            widget.studentIndex!,
+            _firstNameController.text.trim(),
+            _lastNameController.text.trim(),
+            _selectedDepartment,
+            _selectedGender,
+            grade,
+          );
     } else {
-      widget.onAddStudent(newStudent);
+      await ref.read(studentsProvider.notifier).addStudent(
+            _firstNameController.text.trim(),
+            _lastNameController.text.trim(),
+            _selectedDepartment,
+            _selectedGender,
+            grade,
+          );
     }
 
-    Navigator.pop(context);
+    if (!context.mounted) return;
+
+    Navigator.of(context).pop(null); 
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final notifier = ref.watch(studentsProvider.notifier);
+
+    Widget mainScreen = Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,5 +155,11 @@ class _NewStudentState extends State<NewStudent> {
         ],
       ),
     );
+    if(notifier.isLoading) {
+      mainScreen = const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+    return mainScreen;
   }
 }

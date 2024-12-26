@@ -20,9 +20,9 @@ class DepartmentsScreen extends ConsumerWidget {
       itemCount: departments.length,
       itemBuilder: (context, index) {
         final department = departments[index];
-        final studentCount = students
-            .where((student) => student.department.id == department.id)
-            .length;
+        final studentCount = students == null 
+          ? 0 
+          : students.where((s) => s.department == department).length;
 
         return Card(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

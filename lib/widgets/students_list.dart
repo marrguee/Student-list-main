@@ -11,8 +11,8 @@ class StudentsList extends StatelessWidget {
   });
 
   final List<Student> students;
-  final void Function(Student student) onRemoveStudent;
-  final void Function(Student student) onSelectStudent;
+  final void Function(int student) onRemoveStudent;
+  final void Function(int student) onSelectStudent;
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +21,7 @@ class StudentsList extends StatelessWidget {
       itemBuilder: (context, index) => Dismissible(
         key: ValueKey(students[index].id),
         direction: DismissDirection.endToStart,
-        onDismissed: (_) => onRemoveStudent(students[index]),
+        onDismissed: (_) => onRemoveStudent(index),
         background: Container(
           color: Colors.red,
           alignment: Alignment.centerRight,
@@ -29,11 +29,11 @@ class StudentsList extends StatelessWidget {
           child: const Icon(Icons.delete, color: Colors.white),
         ),
         child: InkWell(
-          onTap: () => onSelectStudent(students[index]),
+          onTap: () => onSelectStudent(index),
           child: StudentItem(
             student: students[index],
             onSelect: () {
-              onSelectStudent(students[index]);
+              onSelectStudent(index);
             },),
         ),
       ),
