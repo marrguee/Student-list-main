@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:turbaba_danylo/models/student.dart';
+import '../models/student.dart';
+import '../models/department.dart';
 
 class NewStudent extends StatefulWidget {
-  const NewStudent(
-      {super.key,
-      required this.onAddStudent,
-      required this.onEditStudent,
-      this.existingStudent});
+  const NewStudent({
+    super.key,
+    required this.onAddStudent,
+    required this.onEditStudent,
+    this.existingStudent,
+  });
 
   final void Function(Student student) onAddStudent;
   final void Function(Student student, Student newStudent) onEditStudent;
   final Student? existingStudent;
 
   @override
-  State<StatefulWidget> createState() {
-    return _NewStudentState();
-  }
+  State<NewStudent> createState() => _NewStudentState();
 }
 
 class _NewStudentState extends State<NewStudent> {
-  Departments _selectedDepartment = Departments.it;
-  Genders _selectedGender = Genders.male;
+  Department? _selectedDepartment = departments[0];
+  Genders? _selectedGender = Genders.male;
 
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
@@ -30,7 +30,7 @@ class _NewStudentState extends State<NewStudent> {
   void initState() {
     super.initState();
 
-    var student = widget.existingStudent;
+    final student = widget.existingStudent;
     if (student != null) {
       _firstNameController.text = student.firstName;
       _lastNameController.text = student.lastName;
@@ -45,24 +45,30 @@ class _NewStudentState extends State<NewStudent> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _gradeController.dispose();
-
     super.dispose();
   }
 
   void _submitStudentData() {
-    var oldStudent = widget.existingStudent;
-    var newStudent = Student(
-        firstName: _firstNameController.text,
-        lastName: _lastNameController.text,
-        department: _selectedDepartment,
-        grade: int.tryParse(_gradeController.text)!,
-        gender: _selectedGender);
+    final grade = int.tryParse(_gradeController.text);
+    if (grade == null || _selectedDepartment == null || _selectedGender == null) {
+      return;
+    }
 
-    if (oldStudent != null) {
-      widget.onEditStudent(oldStudent, newStudent);
+    final newStudent = Student(
+      id: widget.existingStudent?.id ?? DateTime.now().toString(),
+      firstName: _firstNameController.text,
+      lastName: _lastNameController.text,
+      department: _selectedDepartment!,
+      grade: grade,
+      gender: _selectedGender!,
+    );
+
+    if (widget.existingStudent != null) {
+      widget.onEditStudent(widget.existingStudent!, newStudent);
     } else {
       widget.onAddStudent(newStudent);
     }
+
     Navigator.pop(context);
   }
 
@@ -76,55 +82,54 @@ class _NewStudentState extends State<NewStudent> {
           TextField(
             controller: _firstNameController,
             maxLength: 50,
-            decoration: const InputDecoration(label: Text("First name")),
+            decoration: const InputDecoration(label: Text("First Name")),
           ),
           TextField(
             controller: _lastNameController,
             maxLength: 50,
-            decoration: const InputDecoration(label: Text("Last name")),
+            decoration: const InputDecoration(label: Text("Last Name")),
           ),
           TextField(
             controller: _gradeController,
+            keyboardType: TextInputType.number,
             decoration: const InputDecoration(label: Text("Grade")),
           ),
-          DropdownButton(
+          DropdownButton<Genders>(
             value: _selectedGender,
             items: Genders.values
                 .map((gender) => DropdownMenuItem(
-                    value: gender, child: Text(gender.name.toUpperCase())))
+                      value: gender,
+                      child: Text(gender == Genders.male ? "Male" : "Female"),
+                    ))
                 .toList(),
-            onChanged: (value) {
-              if (value == null) {
-                return;
-              }
-              setState(() {
-                _selectedGender = value;
-              });
-            },
+            onChanged: (value) => setState(() {
+              _selectedGender = value;
+            }),
           ),
-          DropdownButton(
+          DropdownButton<Department>(
             value: _selectedDepartment,
-            items: Departments.values
+            items: departments
                 .map((department) => DropdownMenuItem(
-                    value: department,
-                    child: Text(department.name.toUpperCase())))
+                      value: department,
+                      child: Row(
+                        children: [
+                          Icon(department.icon, size: 20, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          Text(department.name),
+                        ],
+                      ),
+                    ))
                 .toList(),
-            onChanged: (value) {
-              if (value == null) {
-                return;
-              }
-              setState(() {
-                _selectedDepartment = value;
-              });
-            },
+            onChanged: (value) => setState(() {
+              _selectedDepartment = value;
+            }),
           ),
+          const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               ElevatedButton(
-                onPressed: () {
-                  _submitStudentData();
-                },
+                onPressed: _submitStudentData,
                 child: const Text("Save"),
               ),
               TextButton(

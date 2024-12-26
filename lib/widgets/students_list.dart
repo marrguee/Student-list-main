@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:turbaba_danylo/models/student.dart';
-import 'package:turbaba_danylo/widgets/student_item.dart';
+import '../models/student.dart';
+import 'student_item.dart';
 
 class StudentsList extends StatelessWidget {
   const StudentsList({
@@ -19,17 +19,27 @@ class StudentsList extends StatelessWidget {
     return ListView.builder(
       itemCount: students.length,
       itemBuilder: (context, index) => Dismissible(
-        key: ValueKey(students[index]),
-        onDismissed: (direction) {
-          onRemoveStudent(students[index]);
-        },
-        child: StudentItem(
-          student: students[index],
-          onSelectStudent: () {
-            onSelectStudent(students[index]);
-          },
+        key: ValueKey(students[index].id),
+        direction: DismissDirection.endToStart,
+        onDismissed: (_) => onRemoveStudent(students[index]),
+        background: Container(
+          color: Colors.red,
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: const Icon(Icons.delete, color: Colors.white),
+        ),
+        child: InkWell(
+          onTap: () => onSelectStudent(students[index]),
+          child: StudentItem(
+            student: students[index],
+            onSelect: () {
+              onSelectStudent(students[index]);
+            },),
         ),
       ),
     );
   }
 }
+
+
+

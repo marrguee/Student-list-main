@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:turbaba_danylo/widgets/students.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../widgets/tabs_screen.dart';
 
 void main() {
-  runApp(const MainApp());
+  runApp(const ProviderScope(child: MyApp()));
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Students(),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'University Management',
+      theme: ThemeData(
+        primarySwatch: Colors.teal,
+        textTheme: GoogleFonts.latoTextTheme(),
+        scaffoldBackgroundColor: Colors.grey.shade100,
+      ),
+      home: const TabsScreen(),
     );
   }
 }
